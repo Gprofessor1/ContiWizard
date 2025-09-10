@@ -310,7 +310,7 @@ function newStory(){
   // 입력 폼 초기화
   dom.synopsis.value = '';
   dom.cutCount.value = '6';
-  dom.wantImages.checked = true;
+  dom.wantImages.checked = false;
   
   // 결과 섹션 숨기기
   dom.resultsSection.style.display = 'none';
