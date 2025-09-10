@@ -11,6 +11,10 @@ const dom = {
   wantImages: document.getElementById('wantImages'),
   generateBtn: document.getElementById('generateBtn'),
   status: document.getElementById('status'),
+  results: document.getElementById('results'),
+  resultsSection: document.getElementById('resultsSection'),
+  copyAllBtn: document.getElementById('copyAllBtn'),
+  newStoryBtn: document.getElementById('newStoryBtn'),
 };
 
 const STORAGE_KEY = 'contiWizard_gemini_key';
@@ -218,13 +222,107 @@ function tryParseJsonFromModel(text){
   }
 }
 
-function goToResultPage(doc){
-  // 스토리보드 데이터를 URL 파라미터로 인코딩
-  const encodedData = encodeURIComponent(JSON.stringify(doc));
-  const resultUrl = `result.html?data=${encodedData}`;
+function renderResults(doc){
+  dom.results.innerHTML = '';
   
-  // 결과 페이지로 이동
-  window.location.href = resultUrl;
+  // 제목과 요약 섹션
+  const headerDiv = document.createElement('div');
+  headerDiv.className = 'story-header';
+  headerDiv.innerHTML = `
+    <h3>${escapeHtml(doc.title || '제목 없음')}</h3>
+    <p class="summary">${escapeHtml(doc.summary || '')}</p>
+  `;
+  dom.results.appendChild(headerDiv);
+
+  // 컷별 구역 생성
+  (doc.scenes || []).forEach((s, index)=>{
+    const cutDiv = document.createElement('div');
+    cutDiv.className = 'cut-section';
+    cutDiv.innerHTML = `
+      <div class="cut-header">
+        <span class="cut-number">🟦 ${s.cut}컷</span>
+        <span class="cut-title">${escapeHtml(s.sceneTitle || '')}</span>
+      </div>
+      <div class="cut-content">
+        <div class="content-item">
+          <span class="content-label">📝 설명글</span>
+          <p class="content-text">${escapeHtml(s.description || '')}</p>
+        </div>
+        <div class="content-item">
+          <span class="content-label">💬 대사</span>
+          <p class="content-text">${escapeHtml(s.dialogue || '')}</p>
+        </div>
+        ${s.imagePrompt ? `
+        <div class="content-item">
+          <span class="content-label">🎨 이미지프롬프트</span>
+          <p class="content-text">${escapeHtml(s.imagePrompt)}</p>
+        </div>
+        ` : ''}
+      </div>
+    `;
+    dom.results.appendChild(cutDiv);
+  });
+
+  // 복사용 텍스트 생성
+  let resultText = `### ${escapeHtml(doc.title || '제목 없음')}\n`;
+  resultText += `${escapeHtml(doc.summary || '')}\n\n`;
+  resultText += `---\n\n`;
+  resultText += `설명글 [📝], 대사 [💬], 이미지프롬프트 [🎨]\n\n`;
+  resultText += `---\n\n`;
+
+  (doc.scenes || []).forEach((s)=>{
+    resultText += `🟦 ${s.cut}컷: ${escapeHtml(s.sceneTitle || '')}\n`;
+    resultText += `[📝] ${escapeHtml(s.description || '')}\n`;
+    resultText += `[💬] ${escapeHtml(s.dialogue || '')}\n`;
+    if(s.imagePrompt){
+      resultText += `[🎨] ${escapeHtml(s.imagePrompt)}\n`;
+    }
+    resultText += `\n---\n\n`;
+  });
+  
+  // 복사용 텍스트 저장
+  window.__lastResultText = resultText;
+  
+  // 결과 섹션 표시
+  dom.resultsSection.style.display = 'block';
+  
+  // 결과 섹션으로 스크롤
+  dom.resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyAllResults(){
+  const text = window.__lastResultText || dom.results.innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    // 복사 성공 알림
+    const btn = dom.copyAllBtn;
+    const originalText = btn.textContent;
+    btn.textContent = '복사 완료! ✅';
+    btn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+    
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = '';
+    }, 2000);
+  }).catch(()=>{
+    alert('복사 권한을 허용해주세요.');
+  });
+}
+
+function newStory(){
+  // 입력 폼 초기화
+  dom.synopsis.value = '';
+  dom.cutCount.value = '6';
+  dom.wantImages.checked = true;
+  
+  // 결과 섹션 숨기기
+  dom.resultsSection.style.display = 'none';
+  
+  // 상태 메시지 초기화
+  setStatus('');
+  
+  // 입력 폼으로 스크롤
+  dom.synopsis.scrollIntoView({ behavior: 'smooth' });
+  dom.synopsis.focus();
 }
 
 function escapeHtml(str){
@@ -260,8 +358,8 @@ async function onGenerate(){
       }));
       json.cutCount = json.cutCount ?? json.scenes.length;
     }
-    goToResultPage(json);
-    setStatus('결과 페이지로 이동 중...');
+    renderResults(json);
+    setStatus('완료! 결과를 확인하세요.');
   }catch(err){
     console.error(err);
     // 사용자 친화적 메시지
@@ -282,5 +380,7 @@ async function onGenerate(){
 // 이벤트 바인딩
 dom.saveKeyBtn.addEventListener('click', saveApiKeyToStorage);
 dom.generateBtn.addEventListener('click', onGenerate);
+dom.copyAllBtn.addEventListener('click', copyAllResults);
+dom.newStoryBtn.addEventListener('click', newStory);
 
 loadApiKeyFromStorage();
