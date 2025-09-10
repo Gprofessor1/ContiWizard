@@ -457,6 +457,23 @@ input:focus,textarea:focus{border-color:#4a90e2;outline:none}
   box-shadow: 0 3px 8px rgba(74, 144, 226, 0.4);
 }
 
+.content-label.copyable {
+  cursor: pointer;
+  position: relative;
+}
+
+.content-label.copyable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(74, 144, 226, 0.4);
+}
+
+.content-label.copyable::after {
+  content: ' 클릭해서 복사';
+  font-size: 10px;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
 .content-text{
   margin:0;
   line-height:1.6;

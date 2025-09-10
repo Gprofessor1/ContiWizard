@@ -243,22 +243,43 @@ function renderResults(doc){
       </div>
       <div class="cut-content">
         <div class="content-item">
-          <span class="content-label">📝 설명글</span>
+          <span class="content-label copyable" data-content="${escapeHtml(s.description || '')}">📝 설명글</span>
           <p class="content-text">${escapeHtml(s.description || '')}</p>
         </div>
         <div class="content-item">
-          <span class="content-label">💬 대사</span>
+          <span class="content-label copyable" data-content="${escapeHtml(s.dialogue || '')}">💬 대사</span>
           <p class="content-text">${escapeHtml(s.dialogue || '')}</p>
         </div>
         ${s.imagePrompt ? `
         <div class="content-item">
-          <span class="content-label">🎨 이미지프롬프트</span>
+          <span class="content-label copyable" data-content="${escapeHtml(s.imagePrompt)}">🎨 이미지프롬프트</span>
           <p class="content-text">${escapeHtml(s.imagePrompt)}</p>
         </div>
         ` : ''}
       </div>
     `;
     dom.results.appendChild(cutDiv);
+  });
+
+  // 복사 가능한 라벨에 이벤트 리스너 추가
+  const copyableLabels = dom.results.querySelectorAll('.copyable');
+  copyableLabels.forEach(label => {
+    label.addEventListener('click', function() {
+      const content = this.getAttribute('data-content');
+      navigator.clipboard.writeText(content).then(() => {
+        // 복사 성공 시 시각적 피드백
+        const originalText = this.textContent;
+        this.textContent = '복사됨! ✅';
+        this.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+        
+        setTimeout(() => {
+          this.textContent = originalText;
+          this.style.background = '';
+        }, 1500);
+      }).catch(() => {
+        alert('복사 권한을 허용해주세요.');
+      });
+    });
   });
 
   // 복사용 텍스트 생성
@@ -310,7 +331,7 @@ function newStory(){
   // 입력 폼 초기화
   dom.synopsis.value = '';
   dom.cutCount.value = '6';
-  dom.wantImages.checked = false;
+  dom.wantImages.checked = true;
   
   // 결과 섹션 숨기기
   dom.resultsSection.style.display = 'none';
