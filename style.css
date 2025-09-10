@@ -13,14 +13,13 @@ body {
     /* 전체 배경을 부드러운 그라데이션으로 지정합니다. */
     background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 50%, #f0f8ff 100%);
     background-attachment: fixed;
-    /* Flexbox를 사용하여 콘텐츠(앱 컨테이너)를 화면 정중앙에 배치합니다. */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+    /* 페이지 레이아웃 설정 */
     margin: 0;
-    padding: 20px;
+    padding: 0;
     box-sizing: border-box;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 2. 메인 컨테이너 스타일 */
@@ -38,6 +37,8 @@ body {
     box-sizing: border-box;
     overflow: hidden;
     transition: all 0.3s ease;
+    margin: 0 auto;
+    flex: 1;
 }
 
 .container:hover {
@@ -260,11 +261,39 @@ textarea {
 .bg-emoji span:nth-child(5){left:35%;top:35%;animation-duration:14s}
 @keyframes float{0%{transform:translateY(0)}50%{transform:translateY(-15px) rotate(3deg)}100%{transform:translateY(0)}}
 
-.app-header{padding:32px 20px 10px;text-align:center}
-.app-header h1{margin:0;font-size:32px;letter-spacing:-0.02em}
-.app-header .blink{animation:blink 1.4s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-.subtitle{margin:8px 0 0;color:#666}
+.app-header{
+  padding: 20px 20px 10px;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 20px;
+}
+
+.app-header h1{
+  margin: 0;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  color: #005a9c;
+  font-weight: 500;
+}
+
+.app-header .blink{
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink{
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.subtitle{
+  margin: 8px 0 0;
+  color: #666;
+  font-size: 16px;
+}
 
 .card{
   background: rgba(255, 255, 255, 0.9);

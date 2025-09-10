@@ -1,7 +1,7 @@
 // 콘티마법사 클라이언트 스크립트
 // - API 키 저장/로드 (localStorage)
 // - Gemini 호출로 스토리보드 생성
-// - 결과 렌더링/복사/다운로드
+// - 결과 페이지로 이동
 
 const dom = {
   apiKey: document.getElementById('apiKey'),
@@ -233,8 +233,6 @@ function escapeHtml(str){
   })[c]);
 }
 
-
-
 async function onGenerate(){
   const apiKey = dom.apiKey.value.trim();
   if(!apiKey){ setStatus('API 키가 필요해요.'); return; }
@@ -245,7 +243,6 @@ async function onGenerate(){
 
   setLoading(true);
   setStatus('모델에게 요청 중...');
-  dom.results.innerHTML = '';
 
   try{
     const prompt = buildPrompt({ synopsis, cutCount, wantImages });
@@ -287,5 +284,3 @@ dom.saveKeyBtn.addEventListener('click', saveApiKeyToStorage);
 dom.generateBtn.addEventListener('click', onGenerate);
 
 loadApiKeyFromStorage();
-
-
