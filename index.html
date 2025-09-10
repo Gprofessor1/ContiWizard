@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>콘티마법사 ✨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-emoji" aria-hidden="true">
+    <span>🎬</span>
+    <span>🎨</span>
+    <span>💡</span>
+    <span>✨</span>
+    <span>📝</span>
+  </div>
+
+  <header class="app-header">
+    <h1>콘티마법사 <span class="blink">✨</span></h1>
+    <p class="subtitle">줄거리 → 장면 별 콘티, 대사, 설명을 자동 생성해줘요</p>
+  </header>
+
+  <main class="container">
+    <section class="card settings">
+      <h2>API 설정</h2>
+      <div class="row">
+        <label for="apiKey">Gemini API Key</label>
+        <input id="apiKey" type="password" placeholder="API 키를 입력하세요" autocomplete="off" />
+        <button id="saveKeyBtn" class="btn">저장</button>
+        <small class="hint">로컬에만 저장돼요. 다음 방문 시 자동으로 불러옵니다.</small>
+      </div>
+    </section>
+
+    <section class="card generator">
+      <h2>스토리보드 생성</h2>
+      <div class="row">
+        <label for="synopsis">줄거리</label>
+        <textarea id="synopsis" rows="6" placeholder="예) 고양이 탐정이 도시에서 사라진 요정을 찾는 이야기..."></textarea>
+      </div>
+      <div class="row group">
+        <div>
+          <label for="cutCount">컷 수</label>
+          <input id="cutCount" type="number" min="1" max="30" value="6" />
+        </div>
+        <div>
+          <label for="tone">톤/분위기</label>
+          <input id="tone" type="text" placeholder="파스텔, 따뜻함, 몽환적 등 (선택)" />
+        </div>
+        <div class="checkbox">
+          <input id="wantImages" type="checkbox" checked />
+          <label for="wantImages">이미지 프롬프트 포함</label>
+        </div>
+      </div>
+      <div class="row actions">
+        <button id="generateBtn" class="btn primary">스토리보드 생성하기 🎬</button>
+      </div>
+      <div class="row status">
+        <div id="status"></div>
+      </div>
+    </section>
+
+    <section class="card results">
+      <div class="results-header">
+        <h2>결과</h2>
+        <div class="result-actions">
+          <button id="copyAllBtn" class="btn ghost">전체 복사 📋</button>
+          <button id="downloadJsonBtn" class="btn ghost">JSON 다운로드 ⬇️</button>
+        </div>
+      </div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Made with 💖 & Gemini</span>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
