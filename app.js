@@ -8,13 +8,9 @@ const dom = {
   saveKeyBtn: document.getElementById('saveKeyBtn'),
   synopsis: document.getElementById('synopsis'),
   cutCount: document.getElementById('cutCount'),
-  tone: document.getElementById('tone'),
   wantImages: document.getElementById('wantImages'),
   generateBtn: document.getElementById('generateBtn'),
   status: document.getElementById('status'),
-  results: document.getElementById('results'),
-  copyAllBtn: document.getElementById('copyAllBtn'),
-  downloadJsonBtn: document.getElementById('downloadJsonBtn'),
 };
 
 const STORAGE_KEY = 'contiWizard_gemini_key';
@@ -54,33 +50,45 @@ function setLoading(isLoading){
   dom.generateBtn.textContent = isLoading ? '생성 중... ✨' : '스토리보드 생성하기 🎬';
 }
 
-function buildPrompt({ synopsis, cutCount, tone, wantImages }){
-  const imagePart = wantImages ? `각 컷마다 이미지 프롬프트도 생성하세요. 이미지 프롬프트는 장면을 잘 설명하는 1-2문장, 스타일은 파스텔톤, 현대적 일러스트, 부드러운 조명으로.
-` : '';
-  return `너는 스토리보드 아티스트이자 시나리오 작가야.
-입력된 줄거리를 ${cutCount}개의 장면(컷)으로 나눠 아래 JSON 스키마에 맞춰 출력해.
-각 장면은 간결하고 시각적으로 명확해야 해. 톤/분위기: ${tone || '사용자 지정 없음'}.
-${imagePart}
-JSON만 반환해. 마크다운 금지.
+function buildPrompt({ synopsis, cutCount, wantImages }){
+  const imagePart = wantImages ? `각 컷마다 imagePrompt 필드에 웹툰 스타일의 이미지 프롬프트를 포함하세요. 웹툰 느낌의 일러스트, 밝고 친근한 색감, 파스텔톤으로.` : 'imagePrompt 필드는 null로 설정하세요.';
+  
+  return `웹툰 스토리보드 생성 요청입니다.
 
-스키마:
+줄거리: ${synopsis}
+컷 수: ${cutCount}개
+
+위 줄거리를 초등학교 5-6학년이 이해하기 쉬운 **재미있고 흥미진진한** 웹툰 스토리보드로 만들어주세요.
+
+**작성 가이드라인:**
+- 초등학생이 이해할 수 있는 쉬운 단어와 문장 사용
+- **항상 재미있고 웃긴 요소를 포함**하여 흥미진진하게 구성
+- 웹툰에 적합한 생동감 있고 역동적인 장면 구성
+- 각 컷은 명확하고 시각적으로 표현하기 쉬운 내용으로
+- 대사는 자연스럽고 친근하며 **재미있는 표현** 사용
+- 설명글은 웹툰 작가가 그리기 쉽도록 구체적으로
+- **유머러스하고 즐거운 분위기**로 전체적으로 작성
+
+반드시 아래 JSON 형식을 정확히 따라주세요:
+
 {
-  "title": string, // 전체 제목
-  "summary": string, // 한 줄 요약
-  "cutCount": number,
+  "title": "웹툰 제목 (재미있고 매력적으로)",
+  "summary": "한 줄 요약 (초등학생이 재미있어할 내용으로)",
+  "cutCount": ${cutCount},
   "scenes": [
     {
-      "cut": number, // 1부터 시작
-      "sceneTitle": string,
-      "description": string, // 장면 설명
-      "dialogue": string, // 대사 또는 내레이션
-      "imagePrompt": string | null // 이미지 프롬프트 (선택)
+      "cut": 1,
+      "sceneTitle": "장면 제목 (재미있고 흥미진진하게)",
+      "description": "장면 설명 (웹툰 작가가 그리기 쉽도록 구체적으로, 재미있는 요소 포함)",
+      "dialogue": "대사 또는 내레이션 (자연스럽고 친근하며 재미있게)",
+      "imagePrompt": ${wantImages ? '"웹툰 스타일 이미지 프롬프트"' : 'null'}
     }
   ]
 }
 
-줄거리:
-${synopsis}`;
+${imagePart}
+
+JSON만 반환하고 다른 텍스트는 포함하지 마세요.`;
 }
 
 async function callGemini({ apiKey, prompt }){
@@ -88,7 +96,12 @@ async function callGemini({ apiKey, prompt }){
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=' + encodeURIComponent(apiKey);
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+    generationConfig: { 
+      temperature: 0.7, 
+      maxOutputTokens: 4096, // 토큰 수 증가
+      topP: 0.8,
+      topK: 40
+    },
   };
   const res = await fetch(url, {
     method: 'POST',
@@ -97,57 +110,121 @@ async function callGemini({ apiKey, prompt }){
   });
   if(!res.ok){
     const text = await res.text();
-    throw new Error('Gemini 오류: ' + res.status + ' ' + text);
+    const err = new Error('Gemini 오류: ' + res.status + ' ' + text);
+    err.status = res.status;
+    try{ err.data = JSON.parse(text); }catch(_){ err.data = text; }
+    throw err;
   }
   const data = await res.json();
+  console.log('Gemini 응답 데이터:', data); // 디버깅용
+  
   const candidates = data.candidates || [];
-  const text = candidates[0]?.content?.parts?.[0]?.text || '';
+  if(candidates.length === 0){
+    throw new Error('모델이 응답을 생성하지 않았어요. 프롬프트를 다시 확인해주세요.');
+  }
+  
+  const candidate = candidates[0];
+  if(candidate.finishReason === 'SAFETY'){
+    throw new Error('안전 필터에 의해 차단되었어요. 다른 줄거리로 시도해주세요.');
+  }
+  if(candidate.finishReason === 'MAX_TOKENS'){
+    throw new Error('응답이 너무 길어서 잘렸어요. 컷 수를 줄여보세요.');
+  }
+  
+  const text = candidate?.content?.parts?.[0]?.text || '';
+  if(!text.trim()){
+    throw new Error('모델이 빈 응답을 반환했어요. 다시 시도해주세요.');
+  }
+  
   return text.trim();
+}
+
+async function callGeminiWithRetry(params){
+  const maxAttempts = 3;
+  for(let attempt=1; attempt<=maxAttempts; attempt++){
+    try{
+      if(attempt>1){
+        setStatus(`일시적인 오류로 재시도 중 (${attempt}/${maxAttempts})...`);
+      }
+      return await callGemini(params);
+    }catch(err){
+      const status = err.status;
+      const retriable = status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+      if(!retriable || attempt===maxAttempts){
+        throw err;
+      }
+      // 지수 백오프 + 지터
+      const base = 600; // ms
+      const delay = Math.min(4000, base * Math.pow(2, attempt-1)) + Math.random()*250;
+      await new Promise(r=>setTimeout(r, delay));
+    }
+  }
 }
 
 function tryParseJsonFromModel(text){
   // 모델이 코드블록으로 감싸는 경우 제거
-  const cleaned = text.replace(/^```[a-zA-Z]*\n?|```$/g, '').trim();
-  try{
-    return JSON.parse(cleaned);
-  }catch(err){
-    // JSON만 반환하도록 요청했지만 실패할 수 있으므로, 중괄호 블록 추출 재시도
-    const match = cleaned.match(/\{[\s\S]*\}$/);
-    if(match){
-      try{ return JSON.parse(match[0]); }catch(e){}
+  let cleaned = text.replace(/^```[a-zA-Z]*\n?|```$/g, '').trim();
+  
+  // 여러 시도로 JSON 추출
+  const attempts = [
+    // 1. 전체 텍스트 파싱 시도
+    () => JSON.parse(cleaned),
+    
+    // 2. 첫 번째 JSON 객체 찾기
+    () => {
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if(match) return JSON.parse(match[0]);
+      throw new Error('JSON 객체를 찾을 수 없음');
+    },
+    
+    // 3. 마크다운 제거 후 재시도
+    () => {
+      cleaned = cleaned.replace(/^#+\s*.*$/gm, '').replace(/^\*\s*/gm, '').trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if(match) return JSON.parse(match[0]);
+      throw new Error('마크다운 제거 후에도 JSON을 찾을 수 없음');
+    },
+    
+    // 4. 라인별로 JSON 시작점 찾기
+    () => {
+      const lines = cleaned.split('\n');
+      let jsonStart = -1;
+      for(let i = 0; i < lines.length; i++){
+        if(lines[i].trim().startsWith('{')) {
+          jsonStart = i;
+          break;
+        }
+      }
+      if(jsonStart >= 0) {
+        const jsonLines = lines.slice(jsonStart);
+        const jsonText = jsonLines.join('\n');
+        return JSON.parse(jsonText);
+      }
+      throw new Error('JSON 시작점을 찾을 수 없음');
     }
-    throw new Error('모델 응답을 JSON으로 해석하지 못했어요.');
+  ];
+  
+  for(let i = 0; i < attempts.length; i++){
+    try{
+      return attempts[i]();
+    }catch(err){
+      console.warn(`JSON 파싱 시도 ${i+1} 실패:`, err.message);
+      if(i === attempts.length - 1) {
+        // 마지막 시도에서도 실패하면 원본 텍스트와 함께 오류 메시지
+        console.error('원본 응답:', text);
+        throw new Error(`모델 응답을 JSON으로 해석하지 못했어요. 원본: ${text.substring(0, 200)}...`);
+      }
+    }
   }
 }
 
-function renderResults(doc){
-  dom.results.innerHTML = '';
-  const header = document.createElement('div');
-  header.className = 'scene';
-  header.innerHTML = `
-    <div class="scene-header">
-      <div class="scene-title">${escapeHtml(doc.title || '제목 없음')}</div>
-      <span>${doc.cutCount || (doc.scenes?.length ?? 0)}컷</span>
-    </div>
-    <p>${escapeHtml(doc.summary || '')}</p>
-  `;
-  dom.results.appendChild(header);
-
-  (doc.scenes || []).forEach((s)=>{
-    const el = document.createElement('div');
-    el.className = 'scene';
-    const imgPart = s.imageUrl ? `<img src="${encodeURI(s.imageUrl)}" alt="scene ${s.cut}">` : '';
-    el.innerHTML = `
-      <div class="scene-header">
-        <div class="scene-title">컷 ${s.cut}. ${escapeHtml(s.sceneTitle || '')}</div>
-      </div>
-      ${imgPart}
-      <p>${escapeHtml(s.description || '')}</p>
-      <pre>${escapeHtml(s.dialogue || '')}</pre>
-      ${s.imagePrompt ? `<pre>${escapeHtml(s.imagePrompt)}</pre>` : ''}
-    `;
-    dom.results.appendChild(el);
-  });
+function goToResultPage(doc){
+  // 스토리보드 데이터를 URL 파라미터로 인코딩
+  const encodedData = encodeURIComponent(JSON.stringify(doc));
+  const resultUrl = `result.html?data=${encodedData}`;
+  
+  // 결과 페이지로 이동
+  window.location.href = resultUrl;
 }
 
 function escapeHtml(str){
@@ -156,26 +233,7 @@ function escapeHtml(str){
   })[c]);
 }
 
-function copyAllResults(){
-  const text = dom.results.innerText;
-  navigator.clipboard.writeText(text).then(()=>{
-    setStatus('전체 결과를 복사했어요.');
-  }).catch(()=>{
-    setStatus('복사 권한을 허용해주세요.');
-  });
-}
 
-function downloadJson(doc){
-  const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'conti_wizard_storyboard.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 async function onGenerate(){
   const apiKey = dom.apiKey.value.trim();
@@ -183,7 +241,6 @@ async function onGenerate(){
   const synopsis = dom.synopsis.value.trim();
   if(!synopsis){ setStatus('줄거리를 입력해주세요.'); return; }
   const cutCount = Math.max(1, Math.min(30, Number(dom.cutCount.value) || 1));
-  const tone = dom.tone.value.trim();
   const wantImages = dom.wantImages.checked;
 
   setLoading(true);
@@ -191,8 +248,8 @@ async function onGenerate(){
   dom.results.innerHTML = '';
 
   try{
-    const prompt = buildPrompt({ synopsis, cutCount, tone, wantImages });
-    const raw = await callGemini({ apiKey, prompt });
+    const prompt = buildPrompt({ synopsis, cutCount, wantImages });
+    const raw = await callGeminiWithRetry({ apiKey, prompt });
     const json = tryParseJsonFromModel(raw);
     // 안전장치: cut 번호 보정
     if(Array.isArray(json.scenes)){
@@ -206,14 +263,20 @@ async function onGenerate(){
       }));
       json.cutCount = json.cutCount ?? json.scenes.length;
     }
-    renderResults(json);
-
-    // 저장해두면 재사용 편의
-    window.__lastStoryboard = json;
-    setStatus('완료! 결과를 확인하세요.');
+    goToResultPage(json);
+    setStatus('결과 페이지로 이동 중...');
   }catch(err){
     console.error(err);
-    setStatus(err.message || '오류가 발생했어요.');
+    // 사용자 친화적 메시지
+    if(err.status === 401){
+      setStatus('인증 실패: API 키가 올바른지 확인해주세요.');
+    }else if(err.status === 429){
+      setStatus('요청이 너무 많아요(429). 잠시 후 다시 시도해주세요.');
+    }else if(err.status === 503){
+      setStatus('서비스가 일시적으로 불안정해요(503). 잠시 후 다시 시도해주세요.');
+    }else{
+      setStatus(err.message || '오류가 발생했어요.');
+    }
   }finally{
     setLoading(false);
   }
@@ -221,14 +284,6 @@ async function onGenerate(){
 
 // 이벤트 바인딩
 dom.saveKeyBtn.addEventListener('click', saveApiKeyToStorage);
-dom.copyAllBtn.addEventListener('click', copyAllResults);
-dom.downloadJsonBtn.addEventListener('click', ()=>{
-  if(window.__lastStoryboard){
-    downloadJson(window.__lastStoryboard);
-  }else{
-    setStatus('먼저 생성을 실행해 주세요.');
-  }
-});
 dom.generateBtn.addEventListener('click', onGenerate);
 
 loadApiKeyFromStorage();

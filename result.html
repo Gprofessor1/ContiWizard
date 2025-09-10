@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>스토리보드 결과 - 콘티마법사 ✨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-emoji" aria-hidden="true">
+    <span>🎬</span>
+    <span>🎨</span>
+    <span>💡</span>
+    <span>✨</span>
+    <span>📝</span>
+  </div>
+
+  <header class="app-header">
+    <h1>콘티마법사 <span class="blink">✨</span></h1>
+    <p class="subtitle">스토리보드 결과</p>
+  </header>
+
+  <main class="container">
+    <section class="card results">
+      <div class="results-header">
+        <h2>결과</h2>
+        <div class="result-actions">
+          <button id="copyAllBtn" class="btn ghost">전체 복사 📋</button>
+          <button id="backBtn" class="btn primary">다시 만들기 🔄</button>
+        </div>
+      </div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>Made with 💖 & Gemini</span>
+  </footer>
+
+  <script type="module" src="result.js"></script>
+</body>
+</html>

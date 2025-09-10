@@ -6,7 +6,7 @@
 <title>콘티마법사 ✨</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,7 +30,7 @@
         <label for="apiKey">Gemini API Key</label>
         <input id="apiKey" type="password" placeholder="API 키를 입력하세요" autocomplete="off" />
         <button id="saveKeyBtn" class="btn">저장</button>
-        <small class="hint">로컬에만 저장돼요. 다음 방문 시 자동으로 불러옵니다.</small>
+        <small class="hint">선생님께 받은 코드를 복사&붙여넣기 하세요! 한반만 하면 끝!</small>
       </div>
     </section>
 
@@ -45,10 +45,6 @@
           <label for="cutCount">컷 수</label>
           <input id="cutCount" type="number" min="1" max="30" value="6" />
         </div>
-        <div>
-          <label for="tone">톤/분위기</label>
-          <input id="tone" type="text" placeholder="파스텔, 따뜻함, 몽환적 등 (선택)" />
-        </div>
         <div class="checkbox">
           <input id="wantImages" type="checkbox" checked />
           <label for="wantImages">이미지 프롬프트 포함</label>
@@ -62,16 +58,6 @@
       </div>
     </section>
 
-    <section class="card results">
-      <div class="results-header">
-        <h2>결과</h2>
-        <div class="result-actions">
-          <button id="copyAllBtn" class="btn ghost">전체 복사 📋</button>
-          <button id="downloadJsonBtn" class="btn ghost">JSON 다운로드 ⬇️</button>
-        </div>
-      </div>
-      <div id="results"></div>
-    </section>
   </main>
 
   <footer class="app-footer">
